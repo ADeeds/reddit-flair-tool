@@ -21,7 +21,6 @@ def update_css(subreddit, css_lines):
     if n == 1:
         log.info('Updating CSS with new flair offsets.')
         try:
-            # subreddit.set_stylesheet(new_css)
             subreddit.stylesheet.update(new_css)
         except praw.errors.APIException as e:
             log.critical('Error updating CSS: %s' % e)
@@ -35,15 +34,12 @@ def update_css(subreddit, css_lines):
         exit(1)
 
 def generate_flair(subreddit, img_dir):
-    '''You know, the Nazis had pieces of flair that they made the Jews wear.'''
-    # css_file = 'user-flair.css'
     flair_file = 'user-flair.png'
     img_size = 32
     img_space = 2
 
     # In which we open all images in imgdir and append them "down". 
     # And generate css offsets for each flair.
-    # subreddit.clear_flair_templates()
     flair_template = praw.models.reddit.subreddit.SubredditFlairTemplates(subreddit)
     flair_template.clear()
     css_lines = ''
@@ -92,7 +88,6 @@ def generate_flair(subreddit, img_dir):
 
         log.info('Adding flair templates:')
         for text, css_class in flair_templates:
-            # subreddit.add_flair_template(text=text, css_class=css_class, text_editable=True)
             flair_template.add(text=text, css_class=css_class, text_editable=True)
             log.info('added %s' % text)
 
