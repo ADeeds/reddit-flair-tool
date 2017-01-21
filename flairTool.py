@@ -11,15 +11,18 @@ import logging
 log = logging.getLogger(__name__)
 
 def update_css(subreddit, css_lines):
-    css = subreddit.get_stylesheet()['stylesheet']
+    css = subreddit.stylesheet().stylesheet #['stylesheet']
     # /*FLAIR_OFFSET_START*/ ... /*FLAIR_OFFSET_END*/
     search_for = 'FLAIR_OFFSET_START\*/\n(.+)/\*FLAIR_OFFSET_END'
     replace_str = 'FLAIR_OFFSET_START*/\n%s/*FLAIR_OFFSET_END' % css_lines
     new_css, n = re.subn(search_for, replace_str, css, flags=re.DOTALL)
+    print('N = : ')
+    print(n)
     if n == 1:
         log.info('Updating CSS with new flair offsets.')
         try:
-            subreddit.set_stylesheet(new_css)
+            # subreddit.set_stylesheet(new_css)
+            subreddit.stylesheet.update(new_css)
         except praw.errors.APIException as e:
             log.critical('Error updating CSS: %s' % e)
             f = os.path.join('.', 'error.css')
@@ -35,12 +38,14 @@ def generate_flair(subreddit, img_dir):
     '''You know, the Nazis had pieces of flair that they made the Jews wear.'''
     # css_file = 'user-flair.css'
     flair_file = 'user-flair.png'
-    img_size = 16
+    img_size = 32
     img_space = 2
 
     # In which we open all images in imgdir and append them "down". 
     # And generate css offsets for each flair.
-    subreddit.clear_flair_templates()
+    # subreddit.clear_flair_templates()
+    flair_template = praw.models.reddit.subreddit.SubredditFlairTemplates(subreddit)
+    flair_template.clear()
     css_lines = ''
     log.info('Processing:')
     for root, dirs, files in os.walk(img_dir):
@@ -74,7 +79,7 @@ def generate_flair(subreddit, img_dir):
         #    cssfd.write(css_lines)
         # log.info('Cached user-flair image to %s and flair related css to %s.' % (flair_file, css_file))
         out_img.save(flair_file)
-        if subreddit.upload_image(image_path=flair_file, name='user-flair'):
+        if praw.models.reddit.subreddit.SubredditStylesheet(subreddit).upload(image_path=flair_file, name='user-flair'):
             log.info('Uploaded new user-flair image file to %s' % subreddit)
             os.remove(flair_file)
         else:
@@ -87,10 +92,11 @@ def generate_flair(subreddit, img_dir):
 
         log.info('Adding flair templates:')
         for text, css_class in flair_templates:
-            subreddit.add_flair_template(text=text, css_class=css_class, text_editable=True)
+            # subreddit.add_flair_template(text=text, css_class=css_class, text_editable=True)
+            flair_template.add(text=text, css_class=css_class, text_editable=True)
             log.info('added %s' % text)
 
-        subreddit.add_flair_template(text='(custom)', css_class='custom', text_editable=True)
+        flair_template.add(text='(custom)', css_class='custom', text_editable=True)
 
 
 if __name__ == '__main__':
@@ -130,10 +136,10 @@ if __name__ == '__main__':
     
     try:
         reddit = praw.Reddit(user_agent=user_agent, decode_html_entities='True')  
-        if args.mod or not args.password:
-            reddit.login(args.mod, args.password)
-        else:
-            reddit.login()  # use $HOME/.config/praw.ini
+        # if args.mod or not args.password:
+            # reddit.login(args.mod, args.password)
+        # else:
+            # reddit.login()  # use $HOME/.config/praw.ini
     except praw.errors.InvalidUserPass:
         log.critical('Unable to log into reddit with account %s and password given.' % args.mod)
         exit(1)
@@ -142,7 +148,7 @@ if __name__ == '__main__':
         exit(1)
 
     # access to subreddit object
-    subreddit = reddit.get_subreddit(args.subreddit)
+    subreddit = reddit.subreddit(args.subreddit)
 
     # generate_flair() will exit(1) on error.
     generate_flair(subreddit, args.imagedir) 
